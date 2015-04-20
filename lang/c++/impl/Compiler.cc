@@ -100,6 +100,19 @@ static NodePtr makeNode(const std::string& t, SymbolTable& st, const string& ns)
     throw Exception(boost::format("Unknown type: %1%") % n.fullname());
 }
 
+/** Returns "true" if the field is in the container */
+// e.g.: can be false for non-mandatory fields
+bool containsField(const Entity& e,
+    const Object& m, const string& fieldName)
+{
+    Object::const_iterator it = m.find(fieldName);
+    if (it == m.end()) {
+    	return false;
+    } else {
+        return true;
+    }
+}
+
 const json::Object::const_iterator findField(const Entity& e,
     const Object& m, const string& fieldName)
 {
@@ -331,8 +344,9 @@ static Field makeField(const Entity& e, SymbolTable& st, const string& ns)
     return Field(n, node, d);
 }
 
+// Extended makeRecordNode (with doc)
 static NodePtr makeRecordNode(const Entity& e,
-    const Name& name, const Object& m, SymbolTable& st, const string& ns)
+    const Name& name, const string& doc, const Object& m, SymbolTable& st, const string& ns)
 {        
     const Array& v = getArrayField(e, m, "fields");
     concepts::MultiAttribute<string> fieldNames;
@@ -345,6 +359,26 @@ static NodePtr makeRecordNode(const Entity& e,
         fieldValues.add(f.schema);
         defaultValues.push_back(f.defaultValue);
     }
+
+    return NodePtr(new NodeRecord(asSingleAttribute(name), asSingleAttribute(doc),
+        fieldValues, fieldNames, defaultValues));
+}
+// Standard makeRecordNode
+static NodePtr makeRecordNode(const Entity& e,
+   const Name& name, const Object& m, SymbolTable& st, const string& ns)
+{
+    const Array& v = getArrayField(e, m, "fields");
+    concepts::MultiAttribute<string> fieldNames;
+    concepts::MultiAttribute<NodePtr> fieldValues;
+    vector<GenericDatum> defaultValues;
+
+    for (Array::const_iterator it = v.begin(); it != v.end(); ++it) {
+        Field f = makeField(*it, st, ns);
+        fieldNames.add(f.name);
+        fieldValues.add(f.schema);
+        defaultValues.push_back(f.defaultValue);
+    }
+
     return NodePtr(new NodeRecord(asSingleAttribute(name),
         fieldValues, fieldNames, defaultValues));
 }
@@ -415,6 +449,15 @@ static Name getName(const Entity& e, const Object& m, const string& ns)
     }
 }
 
+// Rem: All the fields are stored in a map (typedef std::map<std::string, Entity> Object;),
+// so there is no need to explicitly specify the fields names.
+/** Look for field "doc" in a record object */
+static const string& getDoc(const Entity& e, const Object& m)
+{
+    const string& doc = getStringField(e, m, "doc");
+    return doc;
+}
+
 static NodePtr makeNode(const Entity& e, const Object& m,
     SymbolTable& st, const string& ns)
 {
@@ -428,9 +471,19 @@ static NodePtr makeNode(const Entity& e, const Object& m,
         if (type == "record" || type == "error") {
             result = NodePtr(new NodeRecord());
             st[nm] = result;
-            NodePtr r = makeRecordNode(e, nm, m, st, nm.ns());
-            (boost::dynamic_pointer_cast<NodeRecord>(r))->swap(
-                *boost::dynamic_pointer_cast<NodeRecord>(result));
+            // Get field doc
+            if (containsField(e, m, "doc")) {
+            	std::string doc = containsField(e, m, "doc")? getDoc(e, m) : "";
+
+            	NodePtr r = makeRecordNode(e, nm, doc, m, st, nm.ns());
+				(boost::dynamic_pointer_cast<NodeRecord>(r))->swap(
+					*boost::dynamic_pointer_cast<NodeRecord>(result));
+            }
+            else { // No doc
+            	NodePtr r = makeRecordNode(e, nm, m, st, nm.ns());
+            	(boost::dynamic_pointer_cast<NodeRecord>(r))->swap(
+            		*boost::dynamic_pointer_cast<NodeRecord>(result));
+            }
         } else {
             result = (type == "enum") ? makeEnumNode(e, nm, m) :
                 makeFixedNode(e, nm, m);

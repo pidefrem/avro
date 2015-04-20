@@ -188,8 +188,17 @@ void
 NodeRecord::printJson(std::ostream &os, int depth) const
 {
     os << "{\n";
+
+    ++depth;
+
+	// Serialize doc for root node only
+    if (depth == 1 && getDoc().size()) {
+		os << indent(depth) << "\"doc\": \""<<getDoc()<<"\",\n";
+	}
+
     os << indent(++depth) << "\"type\": \"record\",\n";
     printName(os, nameAttribute_.get(), depth);
+
     os << indent(depth) << "\"fields\": [\n";
 
     int fields = leafAttributes_.size();
@@ -216,6 +225,7 @@ NodeRecord::printJson(std::ostream &os, int depth) const
         }
 
         os << '\n';
+
         --depth;
     }
     os << indent(depth) << "}\n";
@@ -402,6 +412,7 @@ NodeEnum::printJson(std::ostream &os, int depth) const
 {
     os << "{\n";
     os << indent(++depth) << "\"type\": \"enum\",\n";
+
     printName(os, nameAttribute_.get(), depth);
     os << indent(depth) << "\"symbols\": [\n";
 
@@ -462,6 +473,7 @@ NodeFixed::printJson(std::ostream &os, int depth) const
 {
     os << "{\n";
     os << indent(++depth) << "\"type\": \"fixed\",\n";
+
     printName(os, nameAttribute_.get(), depth);
     os << indent(depth) << "\"size\": " << sizeAttribute_.get() << "\n";
     os << indent(--depth) << '}';
