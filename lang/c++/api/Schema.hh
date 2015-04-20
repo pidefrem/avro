@@ -106,6 +106,8 @@ public:
 
 	std::string getDoc() const;
 	void setDoc(const std::string&);
+	std::string getSignature() const;
+	void setSignature(const std::string&);
 };
 
 class AVRO_DECL EnumSchema : public Schema {

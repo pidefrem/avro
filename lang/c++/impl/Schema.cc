@@ -59,6 +59,14 @@ void RecordSchema::setDoc(const std::string& doc)
 {
 	node_->setDoc(doc);
 }
+std::string RecordSchema::getSignature() const
+{
+	return node_->getSignature();
+}
+void RecordSchema::setSignature(const std::string& str_p)
+{
+	node_->setSignature(str_p);
+}
 
 EnumSchema::EnumSchema(const std::string &name) :
     Schema(new NodeEnum)

@@ -75,6 +75,14 @@ concepts::SingleAttribute<T> asSingleAttribute(const T& t)
     return n;
 }
 
+template <typename T>
+concepts::ModifiableAttribute<T> asModifiableAttribute(const T& t)
+{
+    concepts::ModifiableAttribute<T> n;
+    n.add(t);
+    return n;
+}
+
 static bool isFullName(const string& s)
 {
     return s.find('.') != string::npos;
@@ -344,9 +352,9 @@ static Field makeField(const Entity& e, SymbolTable& st, const string& ns)
     return Field(n, node, d);
 }
 
-// Extended makeRecordNode (with doc)
+// Extended makeRecordNode (with doc and signature)
 static NodePtr makeRecordNode(const Entity& e,
-    const Name& name, const string& doc, const Object& m, SymbolTable& st, const string& ns)
+    const Name& name, const string& doc, const string& sg, const Object& m, SymbolTable& st, const string& ns)
 {        
     const Array& v = getArrayField(e, m, "fields");
     concepts::MultiAttribute<string> fieldNames;
@@ -360,7 +368,7 @@ static NodePtr makeRecordNode(const Entity& e,
         defaultValues.push_back(f.defaultValue);
     }
 
-    return NodePtr(new NodeRecord(asSingleAttribute(name), asSingleAttribute(doc),
+    return NodePtr(new NodeRecord(asSingleAttribute(name), asSingleAttribute(doc), asModifiableAttribute(sg),
         fieldValues, fieldNames, defaultValues));
 }
 // Standard makeRecordNode
@@ -457,6 +465,12 @@ static const string& getDoc(const Entity& e, const Object& m)
     const string& doc = getStringField(e, m, "doc");
     return doc;
 }
+/** Look for field "signature" in a record object */
+static const string& getSignature(const Entity& e, const Object& m)
+{
+    const string& sg = getStringField(e, m, "signature");
+    return sg;
+}
 
 static NodePtr makeNode(const Entity& e, const Object& m,
     SymbolTable& st, const string& ns)
@@ -471,15 +485,16 @@ static NodePtr makeNode(const Entity& e, const Object& m,
         if (type == "record" || type == "error") {
             result = NodePtr(new NodeRecord());
             st[nm] = result;
-            // Get field doc
-            if (containsField(e, m, "doc")) {
+            // Get field doc and/or sg
+            if (containsField(e, m, "doc") || containsField(e, m, "signature")) {
             	std::string doc = containsField(e, m, "doc")? getDoc(e, m) : "";
+            	std::string sg = containsField(e, m, "signature")? getSignature(e, m) : "";
 
-            	NodePtr r = makeRecordNode(e, nm, doc, m, st, nm.ns());
+            	NodePtr r = makeRecordNode(e, nm, doc, sg, m, st, nm.ns());
 				(boost::dynamic_pointer_cast<NodeRecord>(r))->swap(
 					*boost::dynamic_pointer_cast<NodeRecord>(result));
             }
-            else { // No doc
+            else { // No doc or sg
             	NodePtr r = makeRecordNode(e, nm, m, st, nm.ns());
             	(boost::dynamic_pointer_cast<NodeRecord>(r))->swap(
             		*boost::dynamic_pointer_cast<NodeRecord>(result));

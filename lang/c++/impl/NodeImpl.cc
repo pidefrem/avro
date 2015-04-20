@@ -193,8 +193,12 @@ NodeRecord::printJson(std::ostream &os, int depth) const
 
 	// Serialize doc for root node only
     if (depth == 1 && getDoc().size()) {
-		os << indent(depth) << "\"doc\": \""<<getDoc()<<"\",\n";
-	}
+    	os << indent(depth) << "\"doc\": \""<<getDoc()<<"\",\n";
+    }
+    // Serialize signature for root node only
+    if (depth == 1 && getSignature().size()) {
+    	os << indent(depth) << "\"signature\": \""<<getSignature()<<"\",\n";
+    }
 
     os << indent(++depth) << "\"type\": \"record\",\n";
     printName(os, nameAttribute_.get(), depth);

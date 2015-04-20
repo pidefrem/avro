@@ -174,6 +174,50 @@ struct MultiAttribute
     std::vector<Attribute> attrs_;
 };
 
+/**
+ * Single modifiable attribute
+ * @see SingleAttribute
+ */
+template<typename Attribute>
+struct ModifiableAttribute
+{
+    static const bool hasAttribute = true;
+
+    ModifiableAttribute() : attr_(), size_(0)
+    { }
+
+    // copy constructing from another single attribute is allowed
+    ModifiableAttribute(const SingleAttribute<Attribute> &rhs) :
+        attr_(rhs.attr_), size_(rhs.size_)
+    { }
+
+    // copy constructing from a no attribute is allowed
+    ModifiableAttribute(const NoAttribute<Attribute> &rhs) :
+        attr_(), size_(0)
+    { }
+
+    size_t size() const {
+        return size_;
+    }
+
+    void add(const Attribute &attr) {
+        attr_ = attr; // Can be set several times
+    }
+
+    const Attribute &get(size_t index = 0) const {
+        if(index != 0) {
+            throw Exception("ModifiableAttribute has only 1 value");
+        }
+        return attr_;
+    }
+
+  private:
+
+    template<typename T> friend class MultiAttribute;
+
+    Attribute attr_;
+    int       size_;
+};
 
 template<typename T>
 struct NameIndexConcept {

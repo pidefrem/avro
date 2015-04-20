@@ -52,6 +52,7 @@ class NodeImpl : public Node
         Node(type),
         nameAttribute_(),
         docAttribute_(),
+        signatureAttribute_(),
         leafAttributes_(),
         leafNameAttributes_(),
         sizeAttribute_()
@@ -65,21 +66,24 @@ class NodeImpl : public Node
         Node(type),
         nameAttribute_(name),
         docAttribute_(),
+        signatureAttribute_(),
         leafAttributes_(leaves),
         leafNameAttributes_(leafNames),
         sizeAttribute_(size)
     { }
 
-    // Ctor with "doc"
+    // Ctor with "doc" and "signature"
     NodeImpl(Type type,
              const NameConcept &name,
              const concepts::SingleAttribute<std::string>& doc,
+             const concepts::ModifiableAttribute<std::string>& sg,
              const LeavesConcept &leaves,
              const LeafNamesConcept &leafNames,
              const SizeConcept &size) :
         Node(type),
         nameAttribute_(name),
         docAttribute_(doc),
+        signatureAttribute_(sg),
         leafAttributes_(leaves),
         leafNameAttributes_(leafNames),
         sizeAttribute_(size)
@@ -88,6 +92,7 @@ class NodeImpl : public Node
     void swap(NodeImpl& impl) {
         std::swap(nameAttribute_, impl.nameAttribute_);
         std::swap(docAttribute_, impl.docAttribute_);
+        std::swap(signatureAttribute_, impl.signatureAttribute_);
         std::swap(leafAttributes_, impl.leafAttributes_);
         std::swap(leafNameAttributes_, impl.leafNameAttributes_);
         std::swap(sizeAttribute_, impl.sizeAttribute_);
@@ -111,6 +116,13 @@ class NodeImpl : public Node
 	}
 	const std::string &getDoc() const {
 		return docAttribute_.get();
+	}
+
+	void doSetSignature(const std::string &sg) {
+		signatureAttribute_.add(sg);
+	}
+	const std::string &getSignature() const {
+		return signatureAttribute_.get();
 	}
 
     void doAddLeaf(const NodePtr &newLeaf) { 
@@ -199,6 +211,8 @@ class NodeImpl : public Node
 
     // Rem: NameConcept type is HasName (= SingleAttribute<Name>), we use std::string instead
     concepts::SingleAttribute<std::string> docAttribute_; /** Doc used to compare schemas */
+	// The signature has to be modifiable:
+	concepts::ModifiableAttribute<std::string> signatureAttribute_; /** Keep a trace of the process that generated the file */
 
     LeavesConcept leafAttributes_;
     LeafNamesConcept leafNameAttributes_;
@@ -209,8 +223,9 @@ class NodeImpl : public Node
 typedef concepts::NoAttribute<Name>     NoName;
 typedef concepts::SingleAttribute<Name> HasName;
 
-// Add typedef for doc:
+// Add typedef for doc and signature:
 typedef concepts::SingleAttribute<std::string> HasSingleAtt;
+typedef concepts::ModifiableAttribute<std::string> HasModifAtt;
 
 typedef concepts::NoAttribute<NodePtr>      NoLeaves;
 typedef concepts::SingleAttribute<NodePtr>  SingleLeaf;
@@ -318,11 +333,11 @@ public:
         }
     }
 
-    // Ctor with doc as param
-    NodeRecord(const HasName &name, const concepts::SingleAttribute<std::string> &doc, const MultiLeaves &fields,
+    // Ctor with doc and sg as params
+    NodeRecord(const HasName &name, const concepts::SingleAttribute<std::string> &doc, const concepts::ModifiableAttribute<std::string> &sg, const MultiLeaves &fields,
         const LeafNames &fieldsNames,
         const std::vector<GenericDatum>& dv) :
-        NodeImplRecord(AVRO_RECORD, name, doc, fields, fieldsNames, NoSize()),
+        NodeImplRecord(AVRO_RECORD, name, doc, sg, fields, fieldsNames, NoSize()),
         defaultValues(dv) {
         for (size_t i = 0; i < leafNameAttributes_.size(); ++i) {
             if (!nameIndex_.add(leafNameAttributes_.get(i), i)) {

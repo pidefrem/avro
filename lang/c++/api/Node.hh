@@ -122,19 +122,25 @@ class AVRO_DECL Node : private boost::noncopyable
  	void setDoc(const std::string &doc) {
         checkLock();
         doSetDoc(doc);
-    }
+ 	}
 
-   void addLeaf(const NodePtr &newLeaf) {
-        checkLock();
-        doAddLeaf(newLeaf);
-    }
-    virtual size_t leaves() const = 0;
-    virtual const NodePtr& leafAt(int index) const = 0;
-    virtual const GenericDatum& defaultValueAt(int index) {
-        throw Exception(boost::format("No default value at: %1%") % index);
-    }
+ 	virtual const std::string &getSignature() const = 0;
+ 	void setSignature(const std::string &sg) {
+ 		checkLock();
+ 		doSetSignature(sg);
+ 	}
 
-    void addName(const std::string &name) {
+ 	void addLeaf(const NodePtr &newLeaf) {
+ 		checkLock();
+ 		doAddLeaf(newLeaf);
+ 	}
+ 	virtual size_t leaves() const = 0;
+ 	virtual const NodePtr& leafAt(int index) const = 0;
+ 	virtual const GenericDatum& defaultValueAt(int index) {
+ 		throw Exception(boost::format("No default value at: %1%") % index);
+ 	}
+
+ 	void addName(const std::string &name) {
         checkLock();
         checkName(name);
         doAddName(name);
@@ -176,6 +182,7 @@ class AVRO_DECL Node : private boost::noncopyable
 
     virtual void doSetName(const Name &name) = 0;
     virtual void doSetDoc(const std::string &name) = 0;
+    virtual void doSetSignature(const std::string &name) = 0;
 
     virtual void doAddLeaf(const NodePtr &newLeaf) = 0;
     virtual void doAddName(const std::string &name) = 0;
