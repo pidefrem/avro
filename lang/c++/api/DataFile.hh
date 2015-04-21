@@ -242,6 +242,11 @@ public:
      * Closes the reader. No further operation is possible on this reader.
      */
     void close();
+
+    /**
+     * Check compatibility between schemas
+     */
+    std::pair<bool,std::string> check(const ValidSchema& readerSchema) const;
 };
 
 /**
@@ -325,6 +330,11 @@ public:
      * Closes the reader. No further operation is possible on this reader.
      */
     void close() { return base_->close(); }
+
+    /**
+     * Check compatibility between schemas
+     */
+    std::pair<bool,std::string> check(const ValidSchema& readerSchema) const{return base_->check(readerSchema);}
 };
 
 }   // namespace avro

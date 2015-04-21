@@ -210,11 +210,72 @@ void DataFileReaderBase::init()
 
 void DataFileReaderBase::init(const ValidSchema& readerSchema)
 {
-    readerSchema_ = readerSchema;
-    dataDecoder_  = (toString(readerSchema_) != toString(dataSchema_)) ?
-        resolvingDecoder(dataSchema_, readerSchema_, binaryDecoder()) :
-        binaryDecoder();
-    readDataBlock();
+	readerSchema_ = readerSchema;
+
+	// dataDecoder_  = (toString(readerSchema_) != toString(dataSchema_)) ?
+	// resolvingDecoder(dataSchema_, readerSchema_, binaryDecoder()) :
+	// binaryDecoder();
+
+	// Do the same test as commented above but with additional warnings
+	if (!check(readerSchema_).first)
+	{
+		std::cerr<<"WARNING: AVRO SCHEMA READ DIFFERENT FROM WRITER SCHEMA. Trying to resolve schema or use data file schema"<<std::endl;
+
+		dataDecoder_  = resolvingDecoder(dataSchema_, readerSchema_, binaryDecoder());
+	}
+	else
+	{
+		dataDecoder_  = binaryDecoder();
+	}
+
+	readDataBlock();
+}
+
+// Standard compatibility test but with customized error messages for field "doc"
+#define AVRODOC_ID_UNKNOWN "ID unknown"
+std::pair<bool,std::string> DataFileReaderBase::check(const ValidSchema& readerSchema) const
+{
+	std::pair<bool,std::string> result_l = make_pair(true,std::string());
+
+    if (toString(readerSchema) != toString(dataSchema_))
+    {
+    	avro::NodePtr rootData_l = dataSchema_.root();
+    	std::string docData_l(AVRODOC_ID_UNKNOWN);
+    	if (avro::AVRO_RECORD == rootData_l->type())
+    	{
+    		if (!rootData_l->getDoc().empty())
+    		{
+    			docData_l = rootData_l->getDoc();
+    		}
+    	}
+
+    	avro::NodePtr rootReader_l = readerSchema.root();
+    	std::string readerData_l(AVRODOC_ID_UNKNOWN);
+    	if (avro::AVRO_RECORD == rootReader_l->type())
+    	{
+    		if (!rootReader_l->getDoc().empty())
+    		{
+    			readerData_l = rootReader_l->getDoc();
+    		}
+    	}
+
+    	// Create a specific error message and return false if the "doc" fields are different
+    	if (docData_l != readerData_l)
+    	{
+    		std::string errorMsg_l = "Doc Id is different in schema. File:"+docData_l+" , reader:"+readerData_l+".";
+    		result_l.second = errorMsg_l;
+    		result_l.first = false;
+    	}
+    	else if (rootReader_l->getDoc().empty())
+    	{
+    		std::string errorMsg_l = "Incompatible schema. File:"+docData_l+" , reader:"+readerData_l+".";
+    		result_l.second = errorMsg_l;
+    		result_l.first = false;
+    	}
+    	// If doc is non null and docs are equal, return true
+    }
+
+    return result_l;
 }
 
 static void drain(InputStream& in)
