@@ -18,6 +18,7 @@
 
 
 #include "NodeImpl.hh"
+#include <numeric>
 
 namespace avro {
 
@@ -194,19 +195,206 @@ NodeRecord::printJson(std::ostream &os, int depth) const
     int fields = leafAttributes_.size();
     ++depth;
     for(int i = 0; i < fields; ++i) {
-        if(i > 0) {
+        if (i > 0) {
             os << indent(depth) << "},\n";
         }
         os << indent(depth) << "{\n";
         os << indent(++depth) << "\"name\": \"" << leafNameAttributes_.get(i) << "\",\n";
         os << indent(depth) << "\"type\": ";
         leafAttributes_.get(i)->printJson(os, depth);
+
+        // Serialize "default" field:
+        assert(defaultValues.size() == 0 || (defaultValues.size() == leafNameAttributes_.size()));
+        if (defaultValues.size() > 0){
+        	if (defaultValues[i].type() == AVRO_NULL) {
+        		// No "default" field
+        	}
+        	else {
+        		os << ",\n" << indent(depth) << "\"default\": ";
+        		leafAttributes_.get(i)->printDefaultToJson(defaultValues[i], os, depth);
+        	}
+        }
+
         os << '\n';
         --depth;
     }
     os << indent(depth) << "}\n";
     os << indent(--depth) << "]\n";
     os << indent(--depth) << '}';
+}
+
+void
+NodePrimitive::printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType) const {
+	assert(isPrimitive(g.type()));
+
+	if (printType) {
+		os << "\"" << toString(g.type()) << "\": ";
+	}
+	switch (g.type()) {
+	case AVRO_BOOL:
+		os << g.value<bool>();
+		break;
+	case AVRO_INT:
+		os << g.value<int32_t>();
+		break;
+	case AVRO_LONG:
+		os << g.value<int64_t>();
+		break;
+	case AVRO_FLOAT:
+		os << g.value<float>();
+		break;
+	case AVRO_DOUBLE:
+		os << g.value<double>();
+		break;
+	case AVRO_STRING:
+		os << "\"" << g.value<std::string>() << "\"";
+		break;
+	case AVRO_BYTES:
+	{
+		// Convert to a string:
+		const std::vector<uint8_t>& vg = g.value<std::vector<uint8_t> >();
+		std::string s;
+		for (unsigned int i=0; i < vg.size(); i++) {
+			s += static_cast<char>(vg[i]);
+		}
+		os << "\"" << s << "\"";
+	}
+	break;
+	default:
+		break;
+	}
+}
+
+void
+NodeEnum::printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType) const
+{
+	assert(g.type() == AVRO_ENUM);
+	os << "\""  << g.value<GenericEnum>().symbol() << "\"";
+}
+
+void
+NodeFixed::printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType) const
+{
+	assert(g.type() == AVRO_FIXED);
+	// ex: "\uOOff"
+	// Convert to a string
+	const std::vector<uint8_t>& vg = g.value<GenericFixed>().value();
+	std::string s;
+	for (unsigned int i=0; i < vg.size(); i++) {
+		s += static_cast<char>(vg[i]);
+	}
+	os << "\"" << s << "\"";
+}
+
+void
+NodeUnion::printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType) const
+{
+	assert(g.type() == AVRO_UNION);
+	// ex: "type": [ "string", "int" ], "default": { string": "sval" }
+	if (g.value<GenericUnion>().datum().type() == AVRO_NULL) {
+		os << "null";
+	}
+	else {
+		os << "{\n";
+		os << indent(++depth);
+		leafAt(0)->printDefaultToJson(
+				g.value<GenericUnion>().datum(), os, depth); // Always print the first object of union as default
+
+		os << "\n" << indent(--depth) << "}";
+	}
+}
+
+void
+NodeArray::printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType) const
+{
+	assert(g.type() == AVRO_ARRAY);
+	// ex: "default": [1]
+	if (g.value<GenericArray>().value().size() == 0) {
+		os << "null";
+	}
+	else {
+		os << "[\n";
+		os << indent(++depth) << "\"";
+
+		// Serialize all values of the array with recursive calls:
+		for (unsigned int i=0; i < g.value<GenericArray>().value().size(); i++) {
+			if (i == 0) {
+				depth++;
+			}
+			else {
+				os << ",\n";
+			}
+			leafAt(0)->printDefaultToJson(
+					g.value<GenericArray>().value()[i], os, depth, false); // Only one leaf
+		}
+		os << "\n" << indent(--depth) << "]";
+	}
+}
+
+void
+NodeSymbolic::printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType) const
+{
+	getNode()->printDefaultToJson(g, os, depth, false);
+}
+
+void
+NodeRecord::printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType) const
+{
+	assert(g.type() == AVRO_RECORD);
+	if (g.value<GenericRecord>().fieldCount() == 0) {
+		os << "null";
+	}
+	else {
+		os << "{\n";
+
+		// Serialize all fields of the record with recursive calls:
+		for (unsigned int i=0; i < g.value<GenericRecord>().fieldCount(); i++) {
+			if (i == 0) {
+				++depth;
+			}
+			else { // i > 0
+				os << ",\n";
+			}
+
+			os << indent(depth) << "\"";
+			assert(i < leaves());
+			os << leafNameAttributes_.get(i);
+			os << "\": ";
+
+			// Recursive call on child node to be able to get the name attribute
+			// (In case of a record we need the name of the leaves (contained in 'this'))
+			leafAt(i)->printDefaultToJson(g.value<GenericRecord>().fieldAt(i), os, depth, false);
+		}
+		os << "\n" << indent(--depth) << "}";
+	}
+}
+
+void
+NodeMap::printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType) const
+{
+	assert(g.type() == AVRO_MAP);
+	//{"a": 1}
+	if (g.value<GenericMap>().value().size() == 0) {
+		os << "null";
+	}
+	else {
+		os << "{\n";
+
+		for (unsigned int i=0; i < g.value<GenericMap>().value().size(); i++) {
+			if (i == 0) {
+				++depth;
+			}
+			else {
+				os << ",\n";
+			}
+			os << indent(depth) << "\"" <<
+					g.value<GenericMap>().value()[i].first <<
+					"\": ";
+
+			leafAt(i)->printDefaultToJson(g.value<GenericMap>().value()[i].second, os, depth, false);
+		}
+		os << "\n" << indent(--depth) << "}";
+	}
 }
 
 void 

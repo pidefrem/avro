@@ -44,6 +44,28 @@ const std::string typeToString[] = {
 
 BOOST_STATIC_ASSERT( (sizeof(typeToString)/sizeof(std::string)) == (AVRO_NUM_TYPES+1) );
 
+// For serialization
+const std::string typeToRawString[] = {
+    "AVRO_STRING",
+    "AVRO_BYTES",
+    "AVRO_INT",
+    "AVRO_LONG",
+    "AVRO_FLOAT",
+    "AVRO_DOUBLE",
+    "AVRO_BOOL",
+    "AVRO_NULL",
+
+    "AVRO_RECORD",
+    "AVRO_ENUM",
+    "AVRO_ARRAY",
+    "AVRO_MAP",
+    "AVRO_UNION",
+    "AVRO_FIXED",
+
+    "AVRO_SYMBOLIC"
+};
+
+BOOST_STATIC_ASSERT( (sizeof(typeToRawString)/sizeof(std::string)) == (AVRO_NUM_TYPES+1) );
 } // namespace strings
 
 
@@ -56,6 +78,16 @@ const std::string& toString(Type type)
     static std::string undefinedType = "Undefined type";
     if (isAvroTypeOrPseudoType(type)) {
         return strings::typeToString[type];
+    } else {
+        return undefinedType;
+    }
+}
+
+const std::string& toRawString(Type type)
+{
+    static std::string undefinedType = "Undefined type";
+    if (isAvroTypeOrPseudoType(type)) {
+        return strings::typeToRawString[type];
     } else {
         return undefinedType;
     }

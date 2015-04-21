@@ -213,6 +213,8 @@ class AVRO_DECL NodePrimitive : public NodeImplPrimitive
     bool isValid() const {
         return true;
     }
+
+    void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const;
 };
 
 class AVRO_DECL NodeSymbolic : public NodeImplSymbolic
@@ -256,6 +258,8 @@ class AVRO_DECL NodeSymbolic : public NodeImplSymbolic
         actualNode_ = node;
     }
 
+    void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const;
+
   protected:
 
     NodeWeakPtr actualNode_;
@@ -297,6 +301,16 @@ public:
     const GenericDatum& defaultValueAt(int index) {
         return defaultValues[index];
     }
+
+    /** Append a default value to the record node */
+    void addDefaultValue(GenericDatum g) {
+    	defaultValues.push_back(g);
+    }
+    std::vector<GenericDatum>::size_type nbDefaultValues() {
+    	return defaultValues.size();
+    }
+
+    void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const;
 };
 
 class AVRO_DECL NodeEnum : public NodeImplEnum
@@ -327,6 +341,8 @@ class AVRO_DECL NodeEnum : public NodeImplEnum
                 (leafNameAttributes_.size() > 0) 
                );
     }
+
+    void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const;
 };
 
 class AVRO_DECL NodeArray : public NodeImplArray
@@ -348,6 +364,8 @@ class AVRO_DECL NodeArray : public NodeImplArray
     bool isValid() const {
         return (leafAttributes_.size() == 1);
     }
+
+    void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const;
 };
 
 class AVRO_DECL NodeMap : public NodeImplMap
@@ -379,6 +397,8 @@ class AVRO_DECL NodeMap : public NodeImplMap
     bool isValid() const {
         return (leafAttributes_.size() == 2);
     }
+
+    void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const;
 };
 
 class AVRO_DECL NodeUnion : public NodeImplUnion
@@ -453,6 +473,8 @@ class AVRO_DECL NodeUnion : public NodeImplUnion
         }
         return false;
     }
+
+    void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const;
 };
 
 class AVRO_DECL NodeFixed : public NodeImplFixed
@@ -477,6 +499,8 @@ class AVRO_DECL NodeFixed : public NodeImplFixed
                 (sizeAttribute_.size() == 1) 
                );
     }
+
+    void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const;
 };
 
 template < class A, class B, class C, class D >

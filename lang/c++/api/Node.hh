@@ -152,6 +152,9 @@ class AVRO_DECL Node : private boost::noncopyable
 
     virtual void setLeafToSymbolic(int index, const NodePtr &node) = 0;
 
+    /** Serialize the default value GenericDatum g for the node contained in a record node */
+    virtual void printDefaultToJson(const GenericDatum& g, std::ostream &os, int depth, bool printType = true) const = 0;
+
   protected:
 
     void checkLock() const {

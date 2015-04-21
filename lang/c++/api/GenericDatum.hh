@@ -312,6 +312,13 @@ public:
         // assertSameType(v, schema()->leafAt(pos));    
         fields_[pos] = v;
     }
+
+    /**
+     * Append to the fields container.
+     */
+    void appendField(const GenericDatum& v) {
+    	fields_.push_back(v);
+    }
 };
 
 /**

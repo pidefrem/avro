@@ -30,6 +30,7 @@
 #include "Compiler.hh"
 
 #include <fstream>
+#include <sstream>
 #include <boost/test/included/unit_test_framework.hpp>
 
 #ifdef min
@@ -188,6 +189,19 @@ void testResolution()
     checkRecord(t3, t1);
     checkDefaultValues(t3);
 
+    std::cout << "Testing serialization of default values" << std::endl;
+    s_r.toJson(std::cout);
+
+    // Serialize to string then compile from string
+    std::ostringstream oss;
+    s_r.toJson(oss);
+    ValidSchema s_rs = avro::compileJsonSchemaFromString(oss.str());
+
+    std::ostringstream oss_r;
+    std::ostringstream oss_rs;
+    s_r.toJson(oss_r);
+    s_rs.toJson(oss_rs);
+    BOOST_CHECK_EQUAL(oss_r.str(), oss_rs.str());
 }
 
 void testNamespace()

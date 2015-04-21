@@ -94,6 +94,11 @@ inline bool isAvroTypeOrPseudoType(Type t) {
 AVRO_DECL const std::string& toString(Type type);
 
 /**
+ * Converts the given type into a string identical to the enum name. Useful for serialization
+ */
+AVRO_DECL const std::string& toRawString(Type type);
+
+/**
  * Writes a string form of the given type into the given ostream.
  */
 AVRO_DECL std::ostream &operator<< (std::ostream &os, avro::Type type);
