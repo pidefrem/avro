@@ -44,7 +44,7 @@ DOC_CPP=$BUILD/$AVRO_DOC/api/cpp
 DIST_DIR=../../dist/cpp
 TARFILE=../dist/cpp/$AVRO_CPP.tar.gz 
 
-(mkdir -p build; cd build; cmake -G "Unix Makefiles" ..)
+(mkdir -p build; cd build; cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=${AVRO_DIR} ..)
 for target in "$@"
 do
 
